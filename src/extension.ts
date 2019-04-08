@@ -10,6 +10,7 @@ import { AppSettingsTreeItem, AppSettingTreeItem, registerAppServiceExtensionVar
 import { AzureParentTreeItem, AzureTreeDataProvider, AzureTreeItem, AzureUserInput, callWithTelemetryAndErrorHandling, createApiProvider, createTelemetryReporter, IActionContext, registerCommand, registerEvent, registerUIExtensionVariables } from 'vscode-azureextensionui';
 // tslint:disable-next-line:no-submodule-imports
 import { AzureExtensionApiProvider } from 'vscode-azureextensionui/api';
+import { addBinding } from './commands/addBinding/addBinding';
 import { decryptLocalSettings } from './commands/appSettings/decryptLocalSettings';
 import { downloadAppSettings } from './commands/appSettings/downloadAppSettings';
 import { encryptLocalSettings } from './commands/appSettings/encryptLocalSettings';
@@ -22,6 +23,7 @@ import { createFunction } from './commands/createFunction/createFunction';
 import { runPostFunctionCreateStepsFromCache } from './commands/createFunction/FunctionCreateStepBase';
 import { createFunctionApp } from './commands/createFunctionApp';
 import { createNewProject } from './commands/createNewProject/createNewProject';
+import { tryGetFunctionProjectRoot } from './commands/createNewProject/verifyIsProject';
 import { deleteNode } from './commands/deleteNode';
 import { deploy } from './commands/deploy';
 import { connectToGitHub } from './commands/deployments/connectToGitHub';
@@ -53,9 +55,11 @@ import { registerFuncHostTaskEvents } from './funcCoreTools/funcHostTask';
 import { installOrUpdateFuncCoreTools } from './funcCoreTools/installOrUpdateFuncCoreTools';
 import { uninstallFuncCoreTools } from './funcCoreTools/uninstallFuncCoreTools';
 import { validateFuncCoreToolsIsLatest } from './funcCoreTools/validateFuncCoreToolsIsLatest';
+import { getFuncExtensionSetting } from './ProjectSettings';
 import { getTemplateProvider } from './templates/TemplateProvider';
 import { FunctionAppProvider } from './tree/FunctionAppProvider';
 import { FunctionTreeItem } from './tree/FunctionTreeItem';
+import { LocalProjectTreeItem } from './tree/localProject/LocalProjectTreeItem';
 import { ProductionSlotTreeItem } from './tree/ProductionSlotTreeItem';
 import { ProxyTreeItem } from './tree/ProxyTreeItem';
 import { SlotsTreeItem } from './tree/SlotsTreeItem';
@@ -79,7 +83,7 @@ export async function activateInternal(context: vscode.ExtensionContext, perfSta
         // tslint:disable-next-line:no-floating-promises
         validateFuncCoreToolsIsLatest();
 
-        ext.tree = new AzureTreeDataProvider(FunctionAppProvider, 'azureFunctions.loadMore');
+        ext.tree = new AzureTreeDataProvider(FunctionAppProvider, 'azureFunctions.loadMore', await getProjectTreeItems(context));
         context.subscriptions.push(ext.tree);
         context.subscriptions.push(vscode.window.registerTreeDataProvider('azureFunctionsExplorer', ext.tree));
 
@@ -136,6 +140,7 @@ export async function activateInternal(context: vscode.ExtensionContext, perfSta
         registerCommand('azureFunctions.connectToGitHub', connectToGitHub);
         registerCommand('azureFunctions.disconnectRepo', disconnectRepo);
         registerCommand('azureFunctions.swapSlot', swapSlot);
+        registerCommand('azureFunctions.addBinding', addBinding);
         registerCommand('azureFunctions.createSlot', async (node?: AzureParentTreeItem) => await createChildNode(SlotsTreeItem.contextValue, node));
         registerCommand('azureFunctions.toggleAppSettingVisibility', async (node: AppSettingTreeItem) => { await node.toggleValueVisibility(); }, 250);
         registerFuncHostTaskEvents();
@@ -158,4 +163,23 @@ export async function activateInternal(context: vscode.ExtensionContext, perfSta
 
 // tslint:disable-next-line:no-empty
 export function deactivateInternal(): void {
+}
+
+async function getProjectTreeItems(context: vscode.ExtensionContext): Promise<AzureParentTreeItem[]> {
+    const result: AzureParentTreeItem[] = [];
+    if (getFuncExtensionSetting('enableProjectTree')) {
+        // tslint:disable-next-line: strict-boolean-expressions
+        const folders: vscode.WorkspaceFolder[] = vscode.workspace.workspaceFolders || [];
+        for (const folder of folders) {
+            const projectPath: string | undefined = await tryGetFunctionProjectRoot(folder.uri.fsPath, true /* suppressPrompt */);
+            if (projectPath) {
+                const treeItem: LocalProjectTreeItem = new LocalProjectTreeItem(projectPath, folder.uri.fsPath);
+                context.subscriptions.push(treeItem);
+                // tslint:disable-next-line: no-any
+                result.push(treeItem);
+            }
+        }
+    }
+
+    return result;
 }
