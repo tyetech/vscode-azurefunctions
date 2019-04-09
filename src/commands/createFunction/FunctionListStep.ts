@@ -70,6 +70,13 @@ export class FunctionListStep extends AzureWizardPromptStep<IFunctionWizardConte
                     break;
             }
 
+            for (const setting of template.userPromptedSettings) {
+                const lowerCaseKey: string = setting.name.toLowerCase();
+                if (this._defaultSettings[lowerCaseKey] !== undefined) {
+                    wizardContext[setting.name] = this._defaultSettings[lowerCaseKey];
+                }
+            }
+
             addBindingSteps(template.userPromptedSettings, promptSteps);
 
             const executeSteps: AzureWizardExecuteStep<IFunctionWizardContext>[] = [];
