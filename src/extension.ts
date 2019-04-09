@@ -165,6 +165,10 @@ export async function activateInternal(context: vscode.ExtensionContext, perfSta
 export function deactivateInternal(): void {
 }
 
+/**
+ * This has some known limitations that will need to be addressed before removing the feature flag
+ * See https://github.com/Microsoft/vscode-azurefunctions/issues/1163
+ */
 async function getProjectTreeItems(context: vscode.ExtensionContext): Promise<AzureParentTreeItem[]> {
     const result: AzureParentTreeItem[] = [];
     if (getFuncExtensionSetting('enableProjectTree')) {

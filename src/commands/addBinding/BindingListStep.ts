@@ -34,8 +34,7 @@ export class BindingListStep extends AzureWizardPromptStep<IBindingWizardContext
         if (binding) {
             const promptSteps: AzureWizardPromptStep<IBindingWizardContext>[] = [];
             addBindingSteps(binding.settings, promptSteps);
-            const title: string = localize('createFunction', 'Add new binding', binding.displayName);
-            return { promptSteps, title };
+            return { promptSteps };
         } else {
             return undefined;
         }
@@ -54,7 +53,9 @@ export class BindingListStep extends AzureWizardPromptStep<IBindingWizardContext
 
 export function addBindingSteps(settings: IFunctionSetting[], promptSteps: AzureWizardPromptStep<IBindingWizardContext>[]): void {
     for (const setting of settings) {
-        if (setting.resourceType !== undefined) {
+        if (setting.name.toLowerCase() === 'name') {
+            promptSteps.push(new BindingNameStep(setting));
+        } else if (setting.resourceType !== undefined) {
             promptSteps.push(new LocalAppSettingListStep(setting));
         } else {
             switch (setting.valueType) {
@@ -65,12 +66,8 @@ export function addBindingSteps(settings: IFunctionSetting[], promptSteps: Azure
                     promptSteps.push(new EnumPromptStep(setting));
                     break;
                 default:
-                    if (setting.name.toLowerCase() === 'name') {
-                        promptSteps.push(new BindingNameStep(setting));
-                    } else {
-                        // Default to 'string' type for any valueType that isn't supported
-                        promptSteps.push(new StringPromptStep(setting));
-                    }
+                    // Default to 'string' type for any valueType that isn't supported
+                    promptSteps.push(new StringPromptStep(setting));
                     break;
             }
         }

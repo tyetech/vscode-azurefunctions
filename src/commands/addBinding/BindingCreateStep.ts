@@ -31,7 +31,8 @@ export class BindingCreateStep extends AzureWizardExecuteStep<IBindingWizardCont
 
         await confirmEditJsonFile(wizardContext.functionJsonPath, (functionJson: IFunctionJson) => {
             // tslint:disable-next-line: strict-boolean-expressions
-            (functionJson.bindings || []).push(binding);
+            functionJson.bindings = functionJson.bindings || [];
+            functionJson.bindings.push(binding);
             return functionJson;
         });
         wizardContext.binding = binding;

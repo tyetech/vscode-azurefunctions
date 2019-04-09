@@ -46,6 +46,7 @@ export class LocalBindingsTreeItem extends AzureParentTreeItem<IProjectRoot> {
     }
 
     public async createChildImpl(_showCreatingTreeItem: (label: string) => void): Promise<LocalBindingTreeItem> {
+        // https://github.com/Microsoft/vscode-azuretools/issues/120
         const actionContext: IActionContext = { properties: {}, measurements: {} };
         const wizardContext: IBindingWizardContext = {
             actionContext,
